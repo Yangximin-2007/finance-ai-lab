@@ -192,7 +192,7 @@ user_prompt = f"""
 ```python
   formula: rank(-1 * (close_today / close_20d_ago - 1))
   ```
-  选择：排名后10%的股票
+          选择：排名后10%的股票
 
 
 
@@ -200,24 +200,27 @@ user_prompt = f"""
 ```python
   formula: (return_20d - mean_return) / std_return
   ```
-  筛选：日均成交额 > 1亿元
+          筛选：日均成交额 > 1亿元
   
-  选择：Z-score < -1.5的股票
+          选择：Z-score < -1.5的股票
 
 
 
 因子3（优化版）：残差动量（剔除行业和市值影响）
 
 -steps:
+    
     -1. 回归：return_20d = α + β1*industry_return + β2*log(market_cap) + ε
+    
     -2. 取残差ε作为因子
+    
     -3. 选择残差最小的10%股票
 
 
 【代码框架】
 
 # 数据层
-
+```python
 def load_data():
 
     - 日行情数据：开盘价、收盘价、成交额
@@ -225,11 +228,11 @@ def load_data():
     - 股票基本信息：行业分类、市值
     
     - 特殊数据：涨跌停状态、停牌日期
-
+```
 
 
 # 计算层
-
+```python
 def calculate_factor(df, lookback=20):
 
     - 计算每只股票过去20日收益率
@@ -241,11 +244,11 @@ def calculate_factor(df, lookback=20):
     - 按行业和市值做中性化处理（因子3）
     
     - 计算排名/百分位
-
+```
 
 
 # 回测接口
-
+```python
 class ReversalStrategy:
 
     def __init__(self):
@@ -263,7 +266,7 @@ class ReversalStrategy:
         - 等权重分配资金
         
         - 记录调仓日期和权重
-
+```
 
 
 【风险提示】
