@@ -208,7 +208,7 @@ user_prompt = f"""
 
 因子3（优化版）：残差动量（剔除行业和市值影响）
 
-  -steps:
+-steps:
     -1. 回归：return_20d = α + β1*industry_return + β2*log(market_cap) + ε
     -2. 取残差ε作为因子
     -3. 选择残差最小的10%股票
