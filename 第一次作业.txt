@@ -1,0 +1,93 @@
+第一题：
+
+system_prompt="""你是资深的卖方研究员，专注于A股医疗行业。
+分析以上研报原文的时候：
+1.提取标的股票名称
+2.找出评级的信息
+3.提取目标价信息
+4.整理出研报的核心逻辑
+5.指出数据异常（同比变化>30%需标注）
+6.输出 JSON 格式{revenue, progit, margin, flags, researchs, progress}
+7.无法确认的数据标注[待核实]"""
+ user_prompt="""
+ 维持买入评级，目标价提升至52元。
+ 公司Q3收入同比+23%，超市场预期，核心驱动来自海外业务放量及新品类渗透。
+ 费用率环比下降1.2pct，经营杠杆显现。
+ 风险：汇率波动影响海外利润，国内竞争加剧。
+ 标的：迈瑞医疗。"""
+
+ response = client.chat.completions.create(
+    model = "deepseek-chat",
+    messages = [
+        {"role": "system", "context": system_prompt},
+        {"role": "user", "context": user_prompt}
+    ],
+    temperature = 0.5 #可能会有风险判断，所以略高
+    max_token = 500
+ )
+
+ 第二题：
+
+ ①这意味着，我的max_token的值太小，无法完整的读完第17
+ 份财报，使得后续工作18号的读取无法继续
+ ②我会写一个try expart 语句，对每一个研报都执行，可以
+ 在解决问题的同时，防止假溢出
+
+ 第三题：
+
+ 任务A：使用deepseek-chat模型，该模型的特点就是关键词
+ 的搜索和大量数据的快速处理，适合从财报中快速提取关键信息，
+ temperature设置为0.3为最大
+ 任务B：使用deepseek-reasoner模型，该模型的特点就是会对
+ 问题的解答添加思考，适合做推断类型的工作，如风险判断等。
+ temperature设置为0.9-1.2较好
+
+
+订正：
+第一题：
+这是把财报提取的模板直接套过来了。
+JSON 字段名要和你要提取的信息一一对应，模型会严格按字段名理解任务。
+字段名错了，输出就会乱。
+=====================第一处==========================
+# 输出 JSON 格式：
+# {
+#   "stock_name": "...",
+#   "rating": "...",
+#   "target_price": "...",
+#   "core_logic": ["...", "...", "..."],
+#   "risks": ["...", "..."]
+# }
+====================第二处===========================
+{"role": "system", "context": system_prompt},  # 错
+{"role": "system", "content": system_prompt},  # 对
+=====================第三处=========================
+研报提取是结构化任务，要的是准确不是发散。0.2-0.3 就够，0.5 会让模型在措辞上飘，JSON 格式也更容易出问题。
+
+
+第二题：
+① 对了一半
+    finish_reason="length" 确实是 max_tokens 不够导致截断，但它不影响第18份的读取——每次 API 调用是独立的，
+第17份截断不会让第18份"无法继续"。真正的问题是：第17份的输出不完整，你拿到的是残缺数据。
+② try/except 方向对，但关键逻辑没写出来
+    捕获异常是好习惯，但 length 截断不会触发异常，它是正常返回的，只是 finish_reason 字段值不同。正确处理方式：
+
+    for i, report in enumerate(reports):
+    response = client.chat.completions.create(...)
+    
+    finish = response.choices[0].finish_reason
+    result = response.choices[0].message.content
+    
+    if finish == "length":
+        print(f"第{i+1}份被截断，标记待复查")
+        result = result + "...[输出不完整，需人工复核]"
+    
+    results.append(result)
+
+
+    第三题：
+任务A和任务B的模型选择完全正确，理由也说到点子上了。
+    但 reasoner 的 temperature 不能设 0.9-1.2
+    DeepSeek-R1（reasoner）官方建议 temperature 保持默认（通常是 1.0），
+    而且很多推理模型不支持随意调高 temperature，设过高反而会干扰思维链的稳定性。
+    实际使用中 reasoner 你不需要动这个参数，保持默认就行。
+    任务A的 0.3 是对的。
